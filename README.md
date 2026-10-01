@@ -9,4 +9,4 @@ The full product is available as a one-time purchase:
 
 **Get PoolGuard ($49 one-time):** https://vittoriali.gumroad.com/l/poolguard-kit
 
-by vittoriali
+by Haku
