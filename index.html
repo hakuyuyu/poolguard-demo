@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoolGuard — Team API-Budget Pooling · Live Demo</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --bg2:#0f1526; --card:#141b31; --card2:#1a2340;
+    --line:#243056; --txt:#e8ecf8; --mut:#8b96b8; --acc:#5b8cff; --acc2:#7c5cff;
+    --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --pool:#38bdf8;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:radial-gradient(1200px 600px at 50% -10%, #162046 0%, var(--bg) 55%) , var(--bg);
+       color:var(--txt); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+       min-height:100vh; padding:0 0 80px}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 24px}
+  header.top{display:flex; justify-content:space-between; align-items:center; padding:22px 0}
+  .logo{font-weight:800; font-size:20px; letter-spacing:.5px}
+  .logo span{color:var(--acc)}
+  .pill{font-size:12px; color:var(--mut); border:1px solid var(--line); padding:6px 12px; border-radius:999px}
+  .hero{text-align:center; padding:36px 0 8px}
+  .hero h1{font-size:clamp(30px,5vw,52px); line-height:1.12; font-weight:800; letter-spacing:-.5px}
+  .hero h1 .grad{background:linear-gradient(90deg,var(--acc),var(--acc2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero p{color:var(--mut); font-size:17px; max-width:640px; margin:16px auto 0; line-height:1.6}
+  .hero p b{color:var(--txt)}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:30px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--card),var(--bg2)); border:1px solid var(--line);
+        border-radius:18px; padding:22px; box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .card h2{font-size:15px; text-transform:uppercase; letter-spacing:1.2px; color:var(--mut); margin-bottom:16px}
+  .poolbar{height:26px; background:#0b1020; border-radius:12px; overflow:hidden; border:1px solid var(--line)}
+  .poolbar>div{height:100%; width:100%; border-radius:12px;
+    background:linear-gradient(90deg,var(--pool),var(--acc2)); transition:width .5s ease}
+  .big{font-size:34px; font-weight:800; margin:8px 0 2px}
+  .sub{color:var(--mut); font-size:13px}
+  .member{border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-top:12px; background:rgba(255,255,255,.015)}
+  .member .row{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
+  .member .name{font-weight:700}
+  .member .key{font-family:ui-monospace,monospace; font-size:11px; color:var(--mut)}
+  .badge{font-size:11px; padding:3px 10px; border-radius:999px; font-weight:700}
+  .badge.ok{background:rgba(52,211,153,.14); color:var(--ok)}
+  .badge.cut{background:rgba(248,113,113,.16); color:var(--bad); animation:pulse 1.2s infinite}
+  @keyframes pulse{50%{opacity:.55}}
+  .mbar{height:10px; background:#0b1020; border-radius:6px; overflow:hidden}
+  .mbar>div{height:100%; border-radius:6px; background:linear-gradient(90deg,var(--ok),var(--warn)); transition:width .4s}
+  .mbar>div.hot{background:linear-gradient(90deg,var(--warn),var(--bad))}
+  .mlabels{display:flex; justify-content:space-between; font-size:12px; color:var(--mut); margin-top:6px}
+  .controls{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
+  button{cursor:pointer; border:none; border-radius:12px; padding:12px 20px; font-size:14px; font-weight:700;
+         background:linear-gradient(90deg,var(--acc),var(--acc2)); color:#fff; transition:transform .12s}
+  button:hover{transform:translateY(-1px)}
+  button.ghost{background:transparent; border:1px solid var(--line); color:var(--txt)}
+  button.danger{background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.4); color:var(--bad)}
+  #cutoffBanner{display:none; margin-top:16px; padding:16px 18px; border-radius:14px;
+    background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.5); font-size:14px; line-height:1.5}
+  #cutoffBanner b{color:var(--bad)}
+  #cutoffBanner code{background:#0b1020; padding:2px 8px; border-radius:6px; font-size:12px}
+  .log{margin-top:14px; max-height:220px; overflow:auto; font-family:ui-monospace,monospace; font-size:12px;
+       background:#080c18; border:1px solid var(--line); border-radius:12px; padding:12px 14px; line-height:1.7}
+  .log .t{color:var(--mut)} .log .c-ok{color:var(--ok)} .log .c-bad{color:var(--bad)} .log .c-warn{color:var(--warn)}
+  .feat{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:26px}
+  @media(max-width:860px){.feat{grid-template-columns:1fr}}
+  .feat .card{padding:18px}
+  .feat h3{font-size:15px; margin-bottom:8px}
+  .feat p{color:var(--mut); font-size:13.5px; line-height:1.6}
+  .cta{text-align:center; margin-top:44px; padding:36px 24px; border-radius:22px;
+       background:linear-gradient(135deg,#17204a,#241a4d); border:1px solid var(--line)}
+  .cta h2{font-size:26px; margin-bottom:10px}
+  .cta p{color:var(--mut); margin-bottom:20px}
+  .foot{text-align:center; color:var(--mut); font-size:12px; margin-top:34px}
+  .foot b{color:var(--txt)}
+  input,select{background:#0b1020; border:1px solid var(--line); color:var(--txt); border-radius:10px;
+       padding:10px 12px; font-size:13px; width:100%}
+  .formgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px}
+  label{font-size:12px; color:var(--mut); display:block; margin-bottom:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">🛡️ Pool<span>Guard</span></div>
+    <div class="pill">interactive demo · simulated data</div>
+  </header>
+
+  <div class="hero">
+    <h1>One AI budget pool.<br><span class="grad">Every teammate capped.</span></h1>
+    <p>Stop handing your team raw API keys. PoolGuard holds your OpenAI / Anthropic key <b>server-side</b>,
+       gives each member their own key drawing from one pool — with per-member daily &amp; monthly caps and
+       <b>hard 402 cutoffs</b> the second anyone blows their budget.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>💰 Team pool</h2>
+      <div class="big" id="poolBal">$50.00</div>
+      <div class="sub">remaining of $50.00 · pool monthly cap $200</div>
+      <div class="poolbar" style="margin-top:12px"><div id="poolFill"></div></div>
+      <div class="controls">
+        <button id="btnTraffic">▶ Simulate team traffic</button>
+        <button class="ghost" id="btnRogue">⚠️ Unleash rogue agent</button>
+      </div>
+      <div class="controls">
+        <button class="ghost" id="btnTopup">＋ Top up $25</button>
+        <button class="danger" id="btnKill">⛔ Kill switch</button>
+      </div>
+      <div id="cutoffBanner"></div>
+    </div>
+
+    <div class="card">
+      <h2>👥 Members &amp; guardrails</h2>
+      <div id="members"></div>
+      <h2 style="margin-top:18px">➕ Issue member key</h2>
+      <div class="formgrid">
+        <div><label>Name</label><input id="mName" value="dave"></div>
+        <div><label>Daily cap (USD)</label><input id="mCap" type="number" value="5" min="0" step="0.5"></div>
+      </div>
+      <button class="ghost" id="btnAddMember" style="width:100%">Issue key</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h2>📡 Live request log</h2>
+    <div class="log" id="log"><div><span class="t">[ready]</span> pool funded · keys issued · guardrails armed</div></div>
+  </div>
+
+  <div class="feat">
+    <div class="card"><h3>🔑 Keys, not secrets</h3><p>Members get <b>pkpg_…</b> keys. Your upstream provider key is encrypted server-side and <b>never leaves the vault</b> — no endpoint returns it, not even masked.</p></div>
+    <div class="card"><h3>🚫 Hard 402 cutoffs</h3><p>Per-member daily/monthly caps, pool balance, and pool monthly ceiling. Breach = <b>HTTP 402</b>, logged, and the owner gets a who-tripped-it alert.</p></div>
+    <div class="card"><h3>⚡ O(1) budget checks</h3><p>Pre-aggregated spend ledger — one row read per check, no summing usage tables. Kill switch deactivates the whole team instantly.</p></div>
+  </div>
+
+  <div class="cta">
+    <h2>Stop paying for your team's runaway loops.</h2>
+    <p>$49 one-time · full source · self-hosted</p>
+    <button onclick="document.getElementById('btnTraffic').click();window.scrollTo({top:0,behavior:'smooth'})">Try the simulation ↑</button>
+  </div>
+
+  <div class="foot">Built by <b>vittoriali</b> · demo runs fully in your browser, no data leaves this page</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const POOL_START = 50, POOL_CAP = 200;
+let pool = POOL_START, killed = false, timer = null;
+let members = [
+  {name:'alice', key:'pkpg_9f2k…Qa7x', cap:8,  spent:0, cut:false},
+  {name:'bob',   key:'pkpg_4md1…Zt3p', cap:5,  spent:0, cut:false},
+  {name:'carol', key:'pkpg_7xh8…Wq2n', cap:12, spent:0, cut:false},
+];
+const MODELS = [
+  ['gpt-4o-mini', 0.15, 0.60], ['gpt-4o', 2.50, 10.00],
+  ['claude-3-5-haiku', 0.80, 4.00], ['claude-3-5-sonnet', 3.00, 15.00],
+];
+const rnd = (a,b)=>a+Math.random()*(b-a);
+const money = n=>'$'+n.toFixed(2);
+
+function log(msg, cls){
+  const el = $('log');
+  const d = document.createElement('div');
+  const t = new Date().toLocaleTimeString();
+  d.innerHTML = `<span class="t">[${t}]</span> <span class="${cls||''}">${msg}</span>`;
+  el.prepend(d);
+  while(el.children.length>60) el.lastChild.remove();
+}
+function render(){
+  $('poolBal').textContent = money(Math.max(pool,0));
+  $('poolFill').style.width = Math.max(0, pool/POOL_START*100)+'%';
+  const box = $('members'); box.innerHTML='';
+  members.forEach((m,i)=>{
+    const pct = Math.min(100, m.spent/m.cap*100);
+    const div = document.createElement('div');
+    div.className='member';
+    div.innerHTML = `<div class="row"><div><div class="name">${m.name}</div>
+      <div class="key">${m.key}</div></div>
+      <span class="badge ${m.cut?'cut':'ok'}">${m.cut?'⛔ CUT OFF':'● active'}</span></div>
+      <div class="mbar"><div class="${pct>85?'hot':''}" style="width:${pct}%"></div></div>
+      <div class="mlabels"><span>${money(m.spent)} spent</span><span>cap ${money(m.cap)}/day</span></div>`;
+    box.appendChild(div);
+  });
+}
+function cutoff(member, reason){
+  member.cut = true;
+  const b = $('cutoffBanner');
+  b.style.display='block';
+  b.innerHTML = `<b>HTTP 402 — budget exceeded.</b> Member <b>${member.name}</b> tripped the <b>${reason}</b>.
+    Request blocked before any provider spend. <code>{"reason":"${reason.replace(/ /g,'_')}"}</code>
+    <br><span style="color:var(--mut)">Owner alert logged: who tripped it, when, how much over.</span>`;
+  log(`⛔ 402 ${member.name} blocked — ${reason}`, 'c-bad');
+}
+function fireCall(member, rogue){
+  if(killed){ log(`⛔ ${member.name} blocked — team kill switch is ON`, 'c-bad'); return; }
+  if(member.cut){ log(`⛔ ${member.name} blocked — already cut off today`, 'c-bad'); return; }
+  const [model, ir, orr] = MODELS[Math.floor(Math.random()*MODELS.length)];
+  const pt = Math.round(rnd(200, rogue?40000:3000)), ct = Math.round(rnd(100, rogue?8000:600));
+  const cost = (ir*pt + orr*ct)/1e6;
+  if(pool < cost){
+    const b=$('cutoffBanner'); b.style.display='block';
+    b.innerHTML=`<b>HTTP 402 — pool depleted.</b> Pool balance ${money(pool)} can't cover this ${money(cost)} call. <b>Top up to resume.</b>`;
+    log(`⛔ pool depleted — ${money(pool)} left, call needed ${money(cost)}`, 'c-bad');
+    return;
+  }
+  pool -= cost; member.spent += cost;
+  log(`✓ ${member.name} · ${model} · ${pt+ct} tok · <span class="c-warn">${money(cost)}</span> · pool ${money(pool)}`, 'c-ok');
+  if(member.spent >= member.cap) cutoff(member, 'daily cap '+money(member.cap));
+  render();
+}
+function traffic(n, rogue){
+  let i=0;
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    const m = members[Math.floor(Math.random()*members.length)];
+    fireCall(m, rogue);
+    if(++i>=n) clearInterval(timer);
+  }, rogue?120:260);
+}
+$('btnTraffic').onclick = ()=>{ log('—— normal team traffic (12 calls) ——'); traffic(12,false); };
+$('btnRogue').onclick = ()=>{ log('—— ⚠️ rogue agent loop on a random member ——', 'c-warn'); traffic(40,true); };
+$('btnTopup').onclick = ()=>{ pool+=25; log(`＋ owner topped up $25 → pool ${money(pool)}`,'c-ok'); $('cutoffBanner').style.display='none'; render(); };
+$('btnKill').onclick = ()=>{
+  killed=!killed;
+  $('btnKill').textContent = killed ? '✅ Revive team' : '⛔ Kill switch';
+  log(killed?'⛔ KILL SWITCH engaged — all member keys blocked':'✅ team revived', killed?'c-bad':'c-ok');
+  if(killed){ const b=$('cutoffBanner'); b.style.display='block';
+    b.innerHTML=`<b>⛔ Team kill switch ON.</b> Every member key now returns <b>HTTP 402</b>. Flip it back to resume.`; }
+  else $('cutoffBanner').style.display='none';
+};
+$('btnAddMember').onclick = ()=>{
+  const name=($('mName').value||'member').trim(), cap=parseFloat($('mCap').value)||5;
+  const key='pkpg_'+Math.random().toString(36).slice(2,6)+'…'+Math.random().toString(36).slice(2,6);
+  members.push({name, key, cap, spent:0, cut:false});
+  log(`➕ issued key for ${name} — daily cap ${money(cap)} <span class="t">(plaintext shown once)</span>`);
+  render();
+};
+render();
+</script>
+</body>
+</html>
